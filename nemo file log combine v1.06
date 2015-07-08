@@ -1,0 +1,173 @@
+#include <stdio.h>
+#include <string.h>
+#include <windows.h>
+#include <direct.h>
+
+int output_first_nemofile_head(char current_filename [] , char output_filename [] , char tail_buffer []){
+	FILE *in , *out ; 
+	char input_line [10000] ;
+	bool flag_first_non_crosshatch = 0 ;
+	bool flag_first_head_output = 0 ;
+	
+		in = fopen(current_filename , "r");
+		if(in == NULL){
+			printf("Cannot open %s! \n" , current_filename);
+			return -1;
+			//continue;
+		}
+		else{
+			printf("Read %s \n" , current_filename);
+		}
+		out = fopen(output_filename , "a") ;
+		
+		
+		while(!feof (in)){
+			fgets(input_line , 10000 , in);
+			
+			if(input_line[0] != '#' || flag_first_head_output == 0){
+				fputs(input_line , out);
+			}
+			
+			if(input_line[0] != '#' && flag_first_head_output == 0){
+				flag_first_head_output = 1;
+			}
+			
+			if(input_line[0] != '#' && flag_first_non_crosshatch == 0){
+				flag_first_non_crosshatch = 1;
+			}
+			
+			if(flag_first_non_crosshatch == 1 && input_line[0] == '#'){
+				strcpy(tail_buffer , input_line);
+				while(!feof (in)){
+					fgets(input_line , 10000 , in);
+					strcat(tail_buffer , input_line);
+				}
+
+			}
+			
+			
+			
+		}
+		
+		
+		fclose (out);
+		fclose (in);
+		return 0;
+}
+
+int output_first_nemofile_tail(char output_filename [] , char tail_buffer []){
+	FILE *out;
+	fopen(output_filename , "a");
+	
+	if(out == NULL){
+		printf("Cannot open %s! \n" , output_filename);
+		return -1;
+	}
+	
+	fputs(tail_buffer , out);
+	fclose(out);
+	return 0;
+}
+
+int output_next_nemofile(char current_filename[] , char output_filename []){
+	FILE *in , *out ; 
+	char input_line [10000] ;
+	
+		in = fopen(current_filename , "r");
+		if(in == NULL){
+			printf("Cannot open %s! \n" , current_filename);
+			return -1;
+			//continue;
+		}
+		else{
+			printf("Read %s \n" , current_filename);
+		}
+		out = fopen(output_filename , "a") ;
+		
+		
+		while(!feof (in)){
+			fgets(input_line , 10000 , in);
+			
+			if(input_line[0] != '#'){
+				fputs(input_line , out);
+			}
+			
+
+		}
+		
+		
+		fclose (out);
+		fclose (in);
+		return 0;
+}
+
+void combine_nemofile(char current_path[]){
+	char InputPath[65535] ;
+	strcpy(InputPath , current_path);  
+    //放要讀取檔案的資料夾路徑到InputPath字串裡
+    char first_filename[100] , output_filename[100] , newlog_first_filename [100] , tail_buffer[200];
+    char szDir[65535];
+    char dir[65535];
+    WIN32_FIND_DATA FileData;
+    HANDLE          hList;
+    sprintf(szDir, "%s\\*.nmf", InputPath );
+    if ( (hList = FindFirstFile(szDir, &FileData))==INVALID_HANDLE_VALUE )  {
+    	printf("No files be found.\n\n");
+    	system("pause");
+    	exit(1);
+	}    
+    else {
+    		
+    	sprintf(dir, "%s\\%s", InputPath, FileData.cFileName);
+        printf("open first nemo file : %s\n", dir);
+        strcpy(first_filename , FileData.cFileName);
+        
+		strcpy(output_filename , "newlog.txt") ;
+		strcpy( newlog_first_filename , "newlog_" );
+		strcat(  newlog_first_filename , first_filename);
+		//-----------read first nemofile
+		
+		FILE *fp;
+		fp = fopen(newlog_first_filename , "r");
+		if(fp != NULL){
+			printf("log is combined , exit the program!\n");
+			fclose(fp);
+			system("pause");
+			exit(1);
+		}
+		
+		
+		output_first_nemofile_head(dir , output_filename , tail_buffer);
+    		
+        while (1) {
+            if (!FindNextFile(hList, &FileData)) {
+                if (GetLastError() == ERROR_NO_MORE_FILES)
+                    break;
+            }
+            sprintf(dir, "%s\\%s", InputPath, FileData.cFileName);
+            printf("open next nemo file : %s\n", dir);
+            
+            output_next_nemofile(dir , output_filename);
+            
+        }
+    }
+    
+    output_first_nemofile_tail(output_filename , tail_buffer);
+    
+    rename("newlog.txt" , newlog_first_filename);
+    //mkdir(newlog);
+    FindClose(hList);
+    
+}
+
+
+int main(){
+	char current_path [256];
+	
+	getcwd(current_path , 256);
+	printf("Current path : %s\n\n" , current_path);
+	
+	combine_nemofile(current_path);
+	system("pause");
+	return 0;
+}
