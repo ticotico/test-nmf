@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <string.h>
+
+int main(){
+	FILE *in , *out ; 
+	char input_line [10000] , output_line[100] ;
+	char tail_buffer[2000];
+	char current_filename [100];
+	bool flag_first_non_crosshatch = 0 , flag_first_file = 1;
+	bool flag_first_head_output = 0 , flag_first_tail_output = 0;
+	
+	for(int i = 1 ; i <= 2 ; i++){
+		sprintf(current_filename , "%d.nmf" , i);	//set current filename
+		in = fopen(current_filename , "r");
+		if(in == NULL){
+			printf("Cannot open %s! \n" , current_filename);
+			continue;
+		}
+		else{
+			printf("Read %s \n" , current_filename);
+		}
+		out = fopen("newlog.txt" , "a") ;
+		
+		
+		while(!feof (in)){
+			//fscanf(in , "%s" , input_line);
+			fgets(input_line , 10000 , in);
+			//strcat(input_line , "\n");
+			
+			if(input_line[0] != '#' || flag_first_head_output == 0){
+				//fprintf(out , "%s" , input_line);
+				fputs(input_line , out);
+				//printf("%s" , input_line);
+			}
+			
+			if(input_line[0] != '#' && flag_first_head_output == 0){
+				flag_first_head_output = 1;
+			}
+			
+			if(input_line[0] != '#' && flag_first_non_crosshatch == 0){
+				flag_first_non_crosshatch = 1;
+			}
+			
+			if(flag_first_tail_output == 0 && flag_first_non_crosshatch == 1
+				&& input_line[0] == '#'){
+				strcpy(tail_buffer , input_line);
+				while(!feof (in)){
+					fgets(input_line , 10000 , in);
+					strcat(tail_buffer , input_line);
+				}
+				flag_first_tail_output = 1;
+			}
+			
+			
+			
+		}
+		
+		
+		fclose (out);
+		fclose (in);
+	}
+	
+	out = fopen("newlog.txt" , "a") ;
+	fputs(tail_buffer , out);
+	fclose (out);
+	return 0;
+}
