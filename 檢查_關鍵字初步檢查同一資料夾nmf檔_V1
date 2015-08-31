@@ -1,0 +1,154 @@
+#include <stdio.h>
+#include <string.h>
+#include <io.h> //c_file
+#include <direct.h> 
+#include <stdlib.h>
+
+void printb(char *ptr){
+	int flag = 0;
+	while(*ptr++){
+		if(*ptr == '\"')
+		{
+			flag = (flag == 1)?0:1;
+			if(flag == 0)
+				putchar('\n');
+		}
+		if(flag == 1 && *ptr != '\"')
+			putchar(*ptr);
+	}
+}
+
+int main(){
+  char sdir[256], filter[256], current_path[256];
+  struct _finddata_t c_file;
+  long hFile;
+  
+  getcwd(current_path, 256);
+  strcpy( sdir, current_path );
+  printf("Path: %s\n\n", current_path);
+  
+  printf("輸入關鍵字: ");
+  *filter = '*';
+  gets(filter + 1);
+  strcat(filter, "*.nmf" );
+  //printf("%s\n", filter);
+
+  _chdir( sdir );
+  hFile = _findfirst(filter, &c_file);
+  if( hFile!=-1 )
+  {
+    do{
+     //sprintf( current_path, "%s\\%s", sdir, c_file.name );
+     //printf( "Open %s\n", c_file.name );
+     char Lock_Type[64], Test_Script[64], Start_Time[64], Stop_Time[64], Device_Label[128], Scan_Config[256];
+     char Getline[2048], flag = 0;
+     strcpy(Lock_Type, "\0");
+     strcpy(Test_Script, "\0");
+     strcpy(Start_Time, "\0");
+     strcpy(Stop_Time, "\0");
+     strcpy(Device_Label, "\0");
+     strcpy(Scan_Config, "\0");
+     
+     FILE *pt_c_filename;
+     pt_c_filename = fopen(c_file.name, "r");     
+     if(pt_c_filename != NULL)
+     {
+     	printf("Open %s\n", c_file.name);
+     	//------------Start read nemo logfile----------
+     	while(!feof(pt_c_filename))
+     	{
+     		fgets(Getline, 2048, pt_c_filename);
+     		switch (flag)
+     		{
+     			case 0:
+     				if(strncmp(Getline, "#DL", 3) == 0)
+     				{
+     					//printf("%s\n", Getline);
+     					strcpy(Device_Label, Getline);
+     					//printf("%s\n", Device_Label);
+     					flag = 1;
+					}
+					break;
+				case 1:
+					if(strncmp(Getline, "#TS", 3) == 0)
+					{
+						//printf("%s\n", Getline);
+						strcpy(Test_Script, Getline);
+					}
+					else if(strncmp(Getline, "#START", 6) == 0)
+					{
+						//printf("%s\n", Getline);
+						strcpy(Start_Time, Getline);
+						flag = 2;
+					}
+					break;
+				case 2:
+					if(strncmp(Getline, "LOCK", 4) == 0)
+					{
+						//printf("%s\n", Getline);
+						strcpy(Lock_Type, Getline);
+						flag = 3;
+					}
+					else if(strncmp(Getline, "SCANCONFIG", 10) == 0)
+					{
+						//printf("%s\n", Getline);
+						strcpy(Scan_Config, Getline);
+						flag = 3;
+					}
+					break;
+				case 3:
+					if(strncmp(Getline, "#STOP", 5) == 0)
+					{
+						//printf("%s\n", Getline);
+						strcpy(Stop_Time, Getline);
+						flag = 4;
+					}
+					break;
+			}
+		}
+     	//------------End   read nemo logfile----------
+     	fclose(pt_c_filename);
+     	//-----------print result-----------
+     	if(*Device_Label)
+     	{
+     		printf(Device_Label);
+		}
+     	if(*Scan_Config)
+		{
+			printf("Scan: ");
+			printb(Scan_Config);		 	
+		}
+     	if(*Lock_Type)
+     	{
+     		printf(Lock_Type);
+		}
+     	if(*Test_Script)
+     	{
+     		printf("Script: ");
+     		printb(Test_Script);
+		}
+     	
+     	if(*Start_Time)
+     	{
+     	    printf("%s",Start_Time);	
+		}
+     	if(*Stop_Time)
+     	{
+     		printf("%s", Stop_Time);
+		}
+     	//-----------print result-----------
+     	printf("\n");
+	 }
+	 else
+	 {
+	 	printf("Open %s fail.\n", c_file.name);
+	 }
+    }while( _findnext( hFile, &c_file )==0 );	
+  }
+  else
+  {
+  	printf("Cannot find any match nmf logfile.\n");
+  }
+  system("pause");
+	return 0;
+}
