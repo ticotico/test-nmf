@@ -1,0 +1,131 @@
+#include <stdio.h>
+#include <string.h>
+#include <io.h> //c_file
+#include <direct.h> 
+#include <stdlib.h>
+
+int main(){
+char sdir[256], filter[256], current_path[256], search_path[256];
+  struct _finddata_t c_file;
+  long hFile;
+  int filter_length, new_folder_name_length;
+  char newlog_filename[256], new_folder_name[256];
+  char getline[2048], buf_logtail[256] = "\0", step = 1;
+  FILE *pt_input_nmf, *pt_newlog_filename;
+  
+  strcpy(sdir, "C:\\Nemo Tools\\Results"); //set sdir to target file (use C:\\Nemo Tools\\Results)
+  getcwd(current_path, 256);
+  
+  //set filter
+  printf("Input the keyword:");
+  *filter = '*';
+  gets(filter + 1);
+  filter_length = strlen(filter);
+  *(filter + filter_length) = '*';
+  *(filter + filter_length + 1) = '.';
+  printf("Input UE number:");
+  gets(filter + filter_length + 2);
+  strcat( filter, ".nmf" );
+  printf("Filter = %s\n\n", filter);
+
+  _chdir( sdir );
+  hFile = _findfirst(filter, &c_file);
+  
+  //show match keyword logfile(s)
+  if( hFile != -1)
+  {
+  	printf("Below file(s) will be combine:\n");
+  	do{
+  		printf("%s\n", c_file.name);
+  		
+	  }while(_findnext(hFile, &c_file) == 0);
+	system("pause");
+  }
+  else
+  {
+  	printf("Can't find match nemo log file.\n");
+  	system("pause");
+  	exit(0);
+  }
+  
+  hFile = _findfirst(filter, &c_file);
+  
+  if( hFile!=-1 )
+  {
+  	//create new folder and newlog file named _finefirst filename
+  	sprintf(new_folder_name, "%s\\%s", current_path, c_file.name);
+  	new_folder_name_length = strlen(new_folder_name);
+  	*(new_folder_name + new_folder_name_length - 4) = '\0';
+  	printf("Create new folder: %s\n", new_folder_name);
+  	mkdir(new_folder_name);
+  	sprintf(newlog_filename, "%s\\NEWLOG_%s", new_folder_name, c_file.name);
+  	printf("Create: %s\n\n", newlog_filename);
+  	pt_newlog_filename = fopen(newlog_filename, "w");
+  	
+    do{
+    	sprintf(search_path, "%s\\%s", sdir, c_file.name);
+    	printf("Load %s\n", search_path);
+    	
+    	if(step == 3)
+  		{
+  			step = 4;
+		}
+    	
+    	pt_input_nmf = fopen(search_path, "r");
+    	
+    	while(!feof(pt_input_nmf))
+    	{
+    		fgets(getline, 2048, pt_input_nmf);
+    		switch (step)
+    		{
+    			case 1:
+    				if(*getline == '#')
+    				{
+    					fputs(getline, pt_newlog_filename);
+    					break;
+					}
+					else
+					{
+						step = 2;
+					}
+				case 2:
+					if(*getline != '#')
+    				{
+    					fputs(getline, pt_newlog_filename);
+    					break;
+					}
+					else
+					{
+						step = 3;
+					}
+				case 3:
+					strcat(buf_logtail, getline);
+					break;
+				case 4:
+					if(*getline != '#')
+					{
+						fputs(getline, pt_newlog_filename);
+					}
+					break;
+			}
+		}
+    	
+    	fclose(pt_input_nmf);
+    	printf("close %s\n", c_file.name);
+    	
+    }while( _findnext( hFile, &c_file )==0 );	
+    
+    fputs(buf_logtail, pt_newlog_filename);
+    
+    fclose(pt_newlog_filename);
+    
+  }
+  else
+  {
+  	printf("Can't find match nemo logfile.\n'");
+  }
+  
+  	printf("Combine finish.\n");
+  	system("pause");
+	return 0;
+}
