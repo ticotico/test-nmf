@@ -13,7 +13,7 @@ char sdir[256], filter[256], path[256];
   char getline[2048], buf_logtail[256] = "\0", step = 1;
   FILE *pt_input_nmf, *pt_newlog_filename;
   
-  strcpy(sdir, "C:\\Nemo Tools\\Results") //set sdir to target file (use current path)
+  strcpy(sdir, "C:\\Nemo Tools\\Results"); //set sdir to target file (use C:\\Nemo Tools\\Results)
   
   //set filter
   printf("Input the keyword:");
@@ -24,6 +24,8 @@ char sdir[256], filter[256], path[256];
   *(filter + filter_length + 1) = '.';
   printf("Input UE number:");
   gets(filter + filter_length + 2);
+  if(*(filter + filter_length + 2) == '\0')
+  	strcat(filter,"*");
   strcat( filter, ".nmf" );
   printf("Filter = %s\n\n", filter);
 
@@ -51,14 +53,14 @@ char sdir[256], filter[256], path[256];
   
   if( hFile!=-1 )
   {
-  	//creat new folder and newlog file named _finefirst filename
+  	//create new folder and newlog file named _finefirst filename
   	strcpy(new_folder_name, c_file.name);
   	new_folder_name_length = strlen(new_folder_name);
   	*(new_folder_name + new_folder_name_length - 4) = '\0';
-  	printf("Creat new folder %s\n", new_folder_name);
+  	printf("Create new folder %s\n", new_folder_name);
   	mkdir(new_folder_name);
   	sprintf(newlog_filename, "%s\\%s\\NEWLOG_%s.nmf", sdir, new_folder_name, new_folder_name);
-  	printf("Creat %s\n\n", newlog_filename);
+  	printf("Create %s\n\n", newlog_filename);
   	pt_newlog_filename = fopen(newlog_filename, "w");
   	
     do{
