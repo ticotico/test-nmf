@@ -25,6 +25,8 @@ char sdir[256], filter[256], current_path[256], search_path[256];
   *(filter + filter_length + 1) = '.';
   printf("Input UE number:");
   gets(filter + filter_length + 2);
+  if(*(filter + filter_length + 2) == '\0')
+  	strcat(filter,"*");
   strcat( filter, ".nmf" );
   printf("Filter = %s\n\n", filter);
 
