@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <string.h>
+#include <io.h> //c_file
+#include <direct.h> 
+#include <stdlib.h>
+
+int main(){
+  char sdir[256], filter[256], current_path[256];
+  struct _finddata_t c_file;
+  long hFile;
+  
+  int start_hour, start_min, start_sec;
+  int stop_hour, stop_min, stop_sec;
+  int sum_day = 0, sum_hour = 0, sum_min = 0, sum_sec = 0;
+  char start_str[64], stop_str[64];
+  
+  int sum_distance = 0, current_distance, dot_count = 0;
+  char gps_str[128]=",,,,,,\0";
+  char *pt_gps_str = gps_str;
+  
+  //getcwd(current_path, 256);
+  strcpy( sdir, "C:\\Nemo Tools\\Results" );
+  //printf(TEST "Path: %s\n\n", sdir);
+  
+  printf("這個檔案會搜尋 Results 資料夾內所有包含關鍵字的 .1.nmf 檔\n輸入關鍵字: ");
+  *filter = '*';
+  gets(filter + 1);
+  strcat(filter, "*.1.nmf" );
+  //printf("TEST filter %s\n", filter);
+
+  _chdir( sdir );
+  hFile = _findfirst(filter, &c_file);
+  if( hFile!=-1 )
+  {
+    do{
+     //sprintf( current_path, "%s\\%s", sdir, c_file.name );
+     //printf( "Open %s\n", c_file.name );
+     char Getline[2048], flag = 0;
+     
+     FILE *pt_c_filename;
+     pt_c_filename = fopen(c_file.name, "r");     
+     if(pt_c_filename != NULL)
+     {
+     	printf("Open %s\n", c_file.name);
+     	//------------Start read nemo logfile----------
+     	while(!feof(pt_c_filename))
+     	{
+     		fgets(Getline, 2048, pt_c_filename);
+     		switch (flag)
+     		{
+     			case 0:
+     				if(strncmp(Getline, "#START", 6) == 0)
+     				{
+     					printf("%s", Getline);
+     					flag = 1;
+     					
+     					strncpy(start_str, Getline+7, 8);
+					}
+					break;
+				case 1:
+					if(strncmp(Getline, "#STOP", 5) == 0)
+					{
+						printf("%s\n", Getline);
+						flag = 2;
+						strncpy(stop_str, Getline+6, 8);
+					}
+					break;
+			}
+			
+			if(strncmp(Getline, "GPS", 3) == 0)
+			  strcpy(gps_str, Getline);
+		}
+     	//------------End   read nemo logfile----------
+     	fclose(pt_c_filename);
+     	
+     	//get start and stop hour/min/sec of this closed log
+     	start_hour = (start_str[0] - '0') * 10 + (start_str[1] - '0');
+     	start_min = (start_str[3] - '0') * 10 + (start_str[4] - '0');
+     	start_sec = (start_str[6] - '0') * 10 + (start_str[7] - '0');
+     	stop_hour = (stop_str[0] - '0') * 10 + (stop_str[1] - '0');
+     	stop_min = (stop_str[3] - '0') * 10 + (stop_str[4] - '0');
+     	stop_sec = (stop_str[6] - '0') * 10 + (stop_str[7] - '0');
+     	
+     	//printf("TEST %s\n%s\n", start_str, stop_str);
+     	//printf("TEST start h/m/s %d %d %d\n", start_hour, start_min, start_sec);
+     	//printf("TEST stop h/m/s %d %d %d\n", stop_hour, stop_min, stop_sec);
+     	
+     	//calculate sum log time
+     	sum_hour += (stop_hour - start_hour < 0) ? (stop_hour - start_hour + 24) : (stop_hour - start_hour);
+     	sum_min += (stop_min - start_min < 0) ? (stop_min - start_min + 60) : (stop_min - start_min);
+     	sum_sec += (stop_sec - start_sec < 0) ? (stop_sec - start_sec + 60) : (stop_sec - start_sec);
+     	
+     	sum_min += sum_sec / 60;
+     	sum_sec %= 60;
+     	sum_hour += sum_min / 60;
+     	sum_min %= 60;
+     	sum_day += sum_hour / 24;
+     	sum_hour %= 24;
+     	
+     	//printf("TEST: %d %d %d\n", sum_hour, sum_min, sum_sec);
+     	
+     	//calculate total distance during drive test
+     	//reset counters
+     	dot_count = 0;
+     	pt_gps_str = gps_str;
+     	current_distance = 0;
+     	
+     	//move to distance item inside final gps string of log
+     	do {
+     		if(*pt_gps_str == ',')
+     		  dot_count++;
+     		pt_gps_str++;
+		 } while(dot_count < 6);
+		 
+		 //printf("TEST pt_gps_str :%s\n", pt_gps_str);
+		 
+		 //calculate distance in current logfile
+		while(*pt_gps_str != ',') {
+			current_distance *= 10;
+			current_distance += (*pt_gps_str - '0');
+			pt_gps_str++;
+		}
+		
+		//printf("TEST gps_str: %s", gps_str);
+		//printf("TEST current_distance: %d\n\n", current_distance);
+		sum_distance += current_distance;
+	 }
+	 else
+	 {
+	 	printf("Open %s fail.\n", c_file.name);
+	 }
+    }while( _findnext( hFile, &c_file )==0 );	
+  }
+  else
+  {
+  	printf("Cannot find any match nmf logfile.\n");
+  }
+  
+  //print total log time
+  printf("Total log time duration: %d day %d hour %d min %d sec.\n", sum_day, sum_hour, sum_min, sum_sec);
+  //print total distance
+  printf("Total distance during drive test: %d.%03d km.\n", sum_distance / 1000, sum_distance % 1000);
+  system("pause");
+	return 0;
+}
